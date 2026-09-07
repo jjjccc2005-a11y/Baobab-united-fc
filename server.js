@@ -14,7 +14,10 @@ const mimeTypes = { '.html': 'text/html', '.css': 'text/css', '.js': 'text/javas
 const database = getDatabase();
 const production = process.env.NODE_ENV === 'production';
 const loginAttempts = new Map();
-const uploadDirectory = join(root, 'uploads');
+const storageRoot = process.env.DATA_DIR || root;
+const uploadDirectory = join(storageRoot, 'uploads');
+const backupDirectory = join(storageRoot, 'backups');
+const logDirectory = join(storageRoot, 'logs');
 
 const allowedOrigins = new Set(['http://localhost:3000', 'http://localhost:3001', 'http://localhost:4173', 'http://localhost:5500']);
 
@@ -84,8 +87,8 @@ function requireCsrf(request, response) {
 }
 
 async function logError(error, request) {
-  await mkdir(join(root, 'logs'), { recursive: true });
-  await appendFile(join(root, 'logs', 'server.log'), `${new Date().toISOString()} ${request.method} ${request.url} ${error.stack || error}\n`);
+  await mkdir(logDirectory, { recursive: true });
+  await appendFile(join(logDirectory, 'server.log'), `${new Date().toISOString()} ${request.method} ${request.url} ${error.stack || error}\n`);
 }
 
 async function readMultipart(request) {
@@ -118,6 +121,15 @@ async function readBody(request) {
 
 async function serveStatic(request, response) {
   const requestPath = request.url === '/' ? '/index.html' : request.url.split('?')[0];
+  if (requestPath.startsWith('/uploads/')) {
+    const uploadPath = normalize(join(uploadDirectory, requestPath.slice('/uploads/'.length)));
+    if (!uploadPath.startsWith(normalize(uploadDirectory))) return sendJson(response, 403, { error: 'Forbidden' });
+    try {
+      const content = await readFile(uploadPath);
+      response.writeHead(200, { 'Content-Type': mimeTypes[extname(uploadPath)] || 'application/octet-stream' });
+      return response.end(content);
+    } catch { return sendJson(response, 404, { error: 'Not found' }); }
+  }
   const filePath = normalize(join(root, requestPath));
   if (!filePath.startsWith(root)) return sendJson(response, 403, { error: 'Forbidden' });
   if (/[/\\](data|backups|logs)[/\\]/i.test(filePath)) return sendJson(response, 403, { error: 'Forbidden' });
@@ -194,7 +206,7 @@ const requestHandler = async (request, response) => {
     }
     if (url.pathname === '/api/admin/backup' && request.method === 'POST') {
       if (!requireCsrf(request, response)) return;
-      const backupDirectory = join(root, 'backups'); await mkdir(backupDirectory, { recursive: true });
+      await mkdir(backupDirectory, { recursive: true });
       const backupPath = join(backupDirectory, `baobab-${new Date().toISOString().replace(/[:.]/g, '-')}.sqlite`);
       await backupDatabase(backupPath); return sendJson(response, 201, { ok: true, file: backupPath });
     }

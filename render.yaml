@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: baobab-united-fc
+    runtime: node
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATA_DIR
+        value: /data
+      - key: DATABASE_PATH
+        value: /data/baobab.sqlite
+    disk:
+      name: baobab-data
+      mountPath: /data
+      sizeGB: 1

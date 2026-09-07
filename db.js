@@ -2,7 +2,8 @@ import { copyFileSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 
-const databasePath = process.env.DATABASE_PATH || join(process.cwd(), 'data', 'baobab.sqlite');
+const storageRoot = process.env.DATA_DIR || process.cwd();
+const databasePath = process.env.DATABASE_PATH || join(storageRoot, 'data', 'baobab.sqlite');
 mkdirSync(dirname(databasePath), { recursive: true });
 const database = new DatabaseSync(databasePath);
 
