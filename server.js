@@ -242,7 +242,6 @@ const requestHandler = async (request, response) => {
       return sendJson(response, 200, { ok: true });
     }
     if (url.pathname === '/admin' || url.pathname === '/admin/') {
-      if (userCount() === 0) return sendRedirect(response, '/admin/setup.html');
       return sendRedirect(response, currentUser(request) ? '/admin/index.html' : '/admin/login.html');
     }
     return serveStatic(request, response);
