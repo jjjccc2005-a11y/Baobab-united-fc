@@ -45,6 +45,7 @@ resetForm?.addEventListener('submit', async (event) => {
 
 const fixtureForm = document.querySelector('[data-fixture-form]');
 const fixtureList = document.querySelector('[data-fixture-list]');
+const mediaList = document.querySelector('[data-media-list]');
 
 request('/api/auth/me').then((data) => { csrfToken = data.csrfToken; }).catch(() => {});
 
@@ -74,6 +75,21 @@ if (fixtureForm) {
 
 loadFixtures();
 
+async function loadMedia() {
+  if (!mediaList) return;
+  try {
+    const media = await request('/api/media');
+    mediaList.innerHTML = media.length ? media.map((item) => `<article class="admin-media-row"><img src="${item.image_url}" alt="${item.alt_text}"><div><strong>${item.title}</strong><small>${item.category}</small></div><button class="delete-button" data-delete-media="${item.id}">Delete</button></article>`).join('') : '<p class="form-message">No uploaded pictures yet.</p>';
+    mediaList.querySelectorAll('[data-delete-media]').forEach((button) => button.addEventListener('click', async () => {
+      if (!window.confirm('Delete this uploaded picture?')) return;
+      try { await request(`/api/media/${button.dataset.deleteMedia}`, { method: 'DELETE' }); await loadMedia(); showMessage('Picture deleted.'); }
+      catch (error) { showMessage(error.message, true); }
+    }));
+  } catch (error) { showMessage(error.message, true); }
+}
+
+loadMedia();
+
 document.querySelector('[data-logout]')?.addEventListener('click', async () => { await request('/api/auth/logout', { method: 'POST' }); window.location.href = '/admin/login.html'; });
 
 document.querySelector('[data-password-form]')?.addEventListener('submit', async (event) => {
@@ -93,5 +109,24 @@ document.querySelector('[data-media-form]')?.addEventListener('submit', async (e
   const response = await fetch(`${apiOrigin}/api/media`, { method: 'POST', credentials: 'include', headers: { 'X-CSRF-Token': csrfToken }, body: new FormData(event.currentTarget) });
   const data = await response.json();
   if (!response.ok) return showMessage(data.error || 'Upload failed.', true);
-  event.currentTarget.reset(); showMessage('Image uploaded to the media library.');
+  event.currentTarget.reset(); await loadMedia(); showMessage('Image uploaded to the media library.');
+});
+
+document.querySelectorAll('input[type="password"]').forEach((input) => {
+  const wrapper = document.createElement('span');
+  wrapper.className = 'password-field';
+  input.parentNode.insertBefore(wrapper, input);
+  wrapper.appendChild(input);
+  const toggle = document.createElement('button');
+  toggle.type = 'button';
+  toggle.className = 'password-toggle';
+  toggle.setAttribute('aria-label', 'Show password');
+  toggle.textContent = 'Show';
+  toggle.addEventListener('click', () => {
+    const visible = input.type === 'text';
+    input.type = visible ? 'password' : 'text';
+    toggle.textContent = visible ? 'Show' : 'Hide';
+    toggle.setAttribute('aria-label', visible ? 'Show password' : 'Hide password');
+  });
+  wrapper.appendChild(toggle);
 });
