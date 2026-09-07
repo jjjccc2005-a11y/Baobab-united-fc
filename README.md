@@ -1,5 +1,7 @@
 # Baobab United FC
 
+This is a football club website for Baobab United FC.
+
 ## Run the site with its own database
 
 Requires Node.js 22.5 or newer (Node 24 recommended).
