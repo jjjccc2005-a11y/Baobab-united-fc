@@ -237,7 +237,7 @@ const requestHandler = async (request, response) => {
       if (!requireCsrf(request, response)) return;
       const media = database.prepare('SELECT image_url FROM media WHERE id = ?').get(Number(mediaMatch[1]));
       if (!media) return sendJson(response, 404, { error: 'Media not found' });
-      await unlink(join(root, media.image_url.replace(/^\//, ''))).catch(() => {});
+      await unlink(join(storageRoot, media.image_url.replace(/^\/uploads\//, 'uploads/'))).catch(() => {});
       database.prepare('DELETE FROM media WHERE id = ?').run(Number(mediaMatch[1]));
       return sendJson(response, 200, { ok: true });
     }
