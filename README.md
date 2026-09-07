@@ -20,6 +20,13 @@ Production configuration:
 NODE_ENV=production
 PORT=3001
 DATABASE_PATH=/data/baobab.sqlite
+PUBLIC_URL=https://your-service.onrender.com
+SMTP_HOST=smtp.your-provider.com
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=your-smtp-user
+SMTP_PASS=your-smtp-password
+SMTP_FROM=admin@your-domain.com
 TLS_KEY_PATH=/etc/ssl/private/server.key
 TLS_CERT_PATH=/etc/ssl/certs/server.crt
 ```

@@ -36,6 +36,24 @@ export function updatePassword(userId, password) {
   return database.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hashPassword(password), userId);
 }
 
+export function createPasswordReset(userId) {
+  const token = randomBytes(32).toString('hex');
+  const tokenHash = createHash('sha256').update(token).digest('hex');
+  const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+  database.prepare('DELETE FROM password_reset_tokens WHERE user_id = ?').run(userId);
+  database.prepare('INSERT INTO password_reset_tokens (token_hash, user_id, expires_at) VALUES (?, ?, ?)').run(tokenHash, userId, expiresAt);
+  return { token, expiresAt };
+}
+
+export function consumePasswordReset(token, password) {
+  const tokenHash = createHash('sha256').update(token || '').digest('hex');
+  const reset = database.prepare("SELECT user_id FROM password_reset_tokens WHERE token_hash = ? AND used_at IS NULL AND expires_at > datetime('now')").get(tokenHash);
+  if (!reset) return false;
+  updatePassword(reset.user_id, password);
+  database.prepare("UPDATE password_reset_tokens SET used_at = datetime('now') WHERE token_hash = ?").run(tokenHash);
+  return true;
+}
+
 export function createSession(userId) {
   const token = randomBytes(32).toString('hex');
   const csrfToken = randomBytes(32).toString('hex');

@@ -62,6 +62,12 @@ database.exec(`
     csrf_token TEXT NOT NULL,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
   );
+  CREATE TABLE IF NOT EXISTS password_reset_tokens (
+    token_hash TEXT PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    expires_at TEXT NOT NULL,
+    used_at TEXT
+  );
 `);
 
 try { database.exec('ALTER TABLE sessions ADD COLUMN csrf_token TEXT NOT NULL DEFAULT \'legacy\''); } catch { /* Existing databases already have the column. */ }

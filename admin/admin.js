@@ -28,6 +28,7 @@ if (authForm) {
 }
 
 const resetForm = document.querySelector('[data-reset-form]');
+const resetToken = new URLSearchParams(window.location.search).get('token');
 document.querySelector('[data-forgot-password]')?.addEventListener('click', () => {
   resetForm?.classList.toggle('hidden');
   resetForm?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -36,10 +37,10 @@ resetForm?.addEventListener('submit', async (event) => {
   event.preventDefault();
   const body = Object.fromEntries(new FormData(resetForm));
   try {
-    await request('/api/auth/reset-password', { method: 'POST', body: JSON.stringify(body) });
+    await request(resetToken ? '/api/auth/reset-password' : '/api/auth/request-reset', { method: 'POST', body: JSON.stringify(resetToken ? { token: resetToken, password: body.password } : body) });
     resetForm.reset();
     resetForm.classList.add('hidden');
-    showMessage('Password reset. You can now log in with the new password.');
+    showMessage(resetToken ? 'Password reset. You can now log in.' : 'If that email is registered, a reset link has been sent.');
   } catch (error) { showMessage(error.message, true); }
 });
 

@@ -4,9 +4,10 @@ import { extname, join, normalize } from 'node:path';
 import { appendFile, mkdir, readFile, unlink, writeFile } from 'node:fs/promises';
 import { readFileSync } from 'node:fs';
 import { randomBytes } from 'node:crypto';
+import nodemailer from 'nodemailer';
 import { fileURLToPath } from 'node:url';
 import { backupDatabase, deleteFixture, getDatabase, getTeamData, recordFixture } from './db.js';
-import { createSession, createUser, deleteSession, findUser, getSessionUser, updatePassword, userCount, verifyCsrf, verifyPassword } from './auth.js';
+import { consumePasswordReset, createPasswordReset, createSession, createUser, deleteSession, findUser, getSessionUser, updatePassword, userCount, verifyCsrf, verifyPassword } from './auth.js';
 
 const root = fileURLToPath(new URL('.', import.meta.url));
 const port = Number(process.env.PORT || 3001);
@@ -18,6 +19,8 @@ const storageRoot = process.env.DATA_DIR || root;
 const uploadDirectory = join(storageRoot, 'uploads');
 const backupDirectory = join(storageRoot, 'backups');
 const logDirectory = join(storageRoot, 'logs');
+const publicUrl = process.env.PUBLIC_URL || `http://localhost:${port}`;
+const mailTransport = process.env.SMTP_HOST ? nodemailer.createTransport({ host: process.env.SMTP_HOST, port: Number(process.env.SMTP_PORT || 587), secure: process.env.SMTP_SECURE === 'true', auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS } }) : null;
 
 const allowedOrigins = new Set(['http://localhost:3000', 'http://localhost:3001', 'http://localhost:4173', 'http://localhost:5500']);
 
@@ -159,12 +162,19 @@ const requestHandler = async (request, response) => {
       createUser(body.email, body.password);
       return sendJson(response, 201, { ok: true });
     }
+    if (url.pathname === '/api/auth/request-reset' && request.method === 'POST') {
+      const body = await readBody(request);
+      const user = findUser(body.email || '');
+      if (user && mailTransport) {
+        const reset = createPasswordReset(user.id);
+        await mailTransport.sendMail({ from: process.env.SMTP_FROM || process.env.SMTP_USER, to: user.email, subject: 'Baobab United FC password reset', text: `Reset your admin password within 30 minutes: ${publicUrl}/admin/reset.html?token=${reset.token}` });
+      }
+      return sendJson(response, 200, { ok: true });
+    }
     if (url.pathname === '/api/auth/reset-password' && request.method === 'POST') {
       const body = await readBody(request);
-      if (!body.email || !body.password || body.password.length < 10) return sendJson(response, 400, { error: 'Use an email and a password of at least 10 characters' });
-      const user = findUser(body.email || '');
-      if (!user) return sendJson(response, 404, { error: 'No admin account was found for that email' });
-      updatePassword(user.id, body.password);
+      if (!body.token || !body.password || body.password.length < 10) return sendJson(response, 400, { error: 'A valid reset token and password of at least 10 characters are required' });
+      if (!consumePasswordReset(body.token, body.password)) return sendJson(response, 400, { error: 'This reset link is invalid or expired' });
       return sendJson(response, 200, { ok: true });
     }
     if (url.pathname === '/api/auth/login' && request.method === 'POST') {

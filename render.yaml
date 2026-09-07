@@ -11,6 +11,20 @@ services:
         value: /data
       - key: DATABASE_PATH
         value: /data/baobab.sqlite
+      - key: PUBLIC_URL
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_SECURE
+        value: "false"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: SMTP_FROM
+        sync: false
     disk:
       name: baobab-data
       mountPath: /data
