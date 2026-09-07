@@ -14,6 +14,8 @@ Open http://localhost:3001.
 
 The SQLite database is created automatically at `data/baobab.sqlite`.
 
+The admin password is stored as a secure hash in SQLite and is reused across restarts. Do not delete the `data/baobab.sqlite` file unless you intentionally want to reset the local database and admin setup.
+
 Production configuration:
 
 ```text
