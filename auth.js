@@ -1,0 +1,64 @@
+import { createHash, randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
+import { getDatabase } from './db.js';
+
+const database = getDatabase();
+const SESSION_DAYS = 7;
+
+export function hashPassword(password) {
+  const salt = randomBytes(16).toString('hex');
+  const hash = scryptSync(password, salt, 64).toString('hex');
+  return `${salt}:${hash}`;
+}
+
+export function verifyPassword(password, storedPassword) {
+  const [salt, storedHash] = String(storedPassword).split(':');
+  if (!salt || !storedHash) return false;
+  const derivedHash = scryptSync(password, salt, 64);
+  const expectedHash = Buffer.from(storedHash, 'hex');
+  return expectedHash.length === derivedHash.length && timingSafeEqual(expectedHash, derivedHash);
+}
+
+export function createUser(email, password) {
+  const normalizedEmail = email.trim().toLowerCase();
+  return database.prepare('INSERT INTO users (email, password_hash, role) VALUES (?, ?, ?)')
+    .run(normalizedEmail, hashPassword(password), 'admin');
+}
+
+export function userCount() {
+  return database.prepare('SELECT COUNT(*) AS count FROM users').get().count;
+}
+
+export function findUser(email) {
+  return database.prepare('SELECT id, email, password_hash, role FROM users WHERE email = ?').get(email.trim().toLowerCase());
+}
+
+export function updatePassword(userId, password) {
+  return database.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hashPassword(password), userId);
+}
+
+export function createSession(userId) {
+  const token = randomBytes(32).toString('hex');
+  const csrfToken = randomBytes(32).toString('hex');
+  const tokenHash = createHash('sha256').update(token).digest('hex');
+  const expiresAt = new Date(Date.now() + SESSION_DAYS * 86400000).toISOString();
+  database.prepare('INSERT INTO sessions (token_hash, user_id, expires_at, csrf_token) VALUES (?, ?, ?, ?)').run(tokenHash, userId, expiresAt, csrfToken);
+  return { token, csrfToken, expiresAt };
+}
+
+export function getSessionUser(token) {
+  if (!token) return null;
+  const tokenHash = createHash('sha256').update(token).digest('hex');
+  return database.prepare(`SELECT users.id, users.email, users.role, sessions.csrf_token FROM sessions JOIN users ON users.id = sessions.user_id WHERE sessions.token_hash = ? AND sessions.expires_at > datetime('now')`).get(tokenHash) || null;
+}
+
+export function verifyCsrf(token, csrfToken) {
+  if (!token || !csrfToken) return false;
+  const tokenHash = createHash('sha256').update(token).digest('hex');
+  return Boolean(database.prepare("SELECT 1 FROM sessions WHERE token_hash = ? AND csrf_token = ? AND expires_at > datetime('now')").get(tokenHash, csrfToken));
+}
+
+export function deleteSession(token) {
+  if (!token) return;
+  const tokenHash = createHash('sha256').update(token).digest('hex');
+  database.prepare('DELETE FROM sessions WHERE token_hash = ?').run(tokenHash);
+}

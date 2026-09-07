@@ -1,0 +1,7 @@
+data/
+backups/
+logs/
+uploads/
+.env
+*.key
+*.crt
