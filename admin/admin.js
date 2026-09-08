@@ -13,6 +13,21 @@ async function request(path, options = {}) {
   return data;
 }
 
+async function ensureAdmin() {
+  try {
+    const data = await request('/api/auth/me');
+    csrfToken = data.csrfToken;
+    if (!data.user) {
+      window.location.href = '/admin/login.html';
+      return null;
+    }
+    return data.user;
+  } catch (error) {
+    window.location.href = '/admin/login.html';
+    return null;
+  }
+}
+
 const authForm = document.querySelector('[data-auth-form]');
 if (authForm) {
   const mode = authForm.dataset.authForm;
@@ -49,8 +64,6 @@ const fixtureList = document.querySelector('[data-fixture-list]');
 const mediaList = document.querySelector('[data-media-list]');
 const messageList = document.querySelector('[data-message-list]');
 
-request('/api/auth/me').then((data) => { csrfToken = data.csrfToken; }).catch(() => {});
-
 async function loadFixtures() {
   if (!fixtureList) return;
   try {
@@ -65,17 +78,14 @@ async function loadFixtures() {
 }
 
 if (fixtureForm) {
-  request('/api/auth/me').then((data) => { if (!data.user) window.location.href = '/admin/login.html'; csrfToken = data.csrfToken; }).catch(() => { window.location.href = '/admin/login.html'; });
   fixtureForm.addEventListener('submit', async (event) => {
     event.preventDefault();
     const formData = Object.fromEntries(new FormData(fixtureForm));
     const body = { ...formData, baobab_score: formData.baobab_score === '' ? null : Number(formData.baobab_score), opponent_score: formData.opponent_score === '' ? null : Number(formData.opponent_score) };
-    try { await request('/api/fixtures', { method: 'POST', body: JSON.stringify(body) }); fixtureForm.reset(); showMessage('Saved. The Team page will show it after refresh.'); await loadFixtures(); }
+    try { await ensureAdmin(); await request('/api/fixtures', { method: 'POST', body: JSON.stringify(body) }); fixtureForm.reset(); showMessage('Saved. The Team page will show it after refresh.'); await loadFixtures(); }
     catch (error) { showMessage(error.message, true); }
   });
 }
-
-loadFixtures();
 
 async function loadMedia() {
   if (!mediaList) return;
@@ -89,8 +99,6 @@ async function loadMedia() {
     }));
   } catch (error) { showMessage(error.message, true); }
 }
-
-loadMedia();
 
 async function loadMessages() {
   if (!messageList) return;
@@ -119,24 +127,33 @@ async function loadMessages() {
   } catch (error) { messageList.innerHTML = '<p class="form-message error">Unable to load messages.</p>'; }
 }
 
-loadMessages();
+async function initDashboard() {
+  const user = await ensureAdmin();
+  if (!user) return;
+  await Promise.all([loadFixtures(), loadMedia(), loadMessages()]);
+}
+
+if (document.querySelector('[data-fixture-form]') || document.querySelector('[data-media-list]') || document.querySelector('[data-message-list]')) {
+  initDashboard();
+}
 
 document.querySelector('[data-logout]')?.addEventListener('click', async () => { await request('/api/auth/logout', { method: 'POST' }); window.location.href = '/admin/login.html'; });
 
 document.querySelector('[data-password-form]')?.addEventListener('submit', async (event) => {
   event.preventDefault();
   const password = new FormData(event.currentTarget).get('password');
-  try { await request('/api/auth/password', { method: 'POST', body: JSON.stringify({ password }) }); event.currentTarget.reset(); showMessage('Password updated.'); }
+  try { await ensureAdmin(); await request('/api/auth/password', { method: 'POST', body: JSON.stringify({ password }) }); event.currentTarget.reset(); showMessage('Password updated.'); }
   catch (error) { showMessage(error.message, true); }
 });
 
 document.querySelector('[data-backup]')?.addEventListener('click', async () => {
-  try { await request('/api/admin/backup', { method: 'POST', body: '{}' }); showMessage('Database backup created.'); }
+  try { await ensureAdmin(); await request('/api/admin/backup', { method: 'POST', body: '{}' }); showMessage('Database backup created.'); }
   catch (error) { showMessage(error.message, true); }
 });
 
 document.querySelector('[data-media-form]')?.addEventListener('submit', async (event) => {
   event.preventDefault();
+  await ensureAdmin();
   const response = await fetch(`${apiOrigin}/api/media`, { method: 'POST', credentials: 'include', headers: { 'X-CSRF-Token': csrfToken }, body: new FormData(event.currentTarget) });
   const data = await response.json();
   if (!response.ok) return showMessage(data.error || 'Upload failed.', true);
