@@ -21,7 +21,6 @@ const uploadDirectory = join(storageRoot, 'uploads');
 const backupDirectory = join(storageRoot, 'backups');
 const logDirectory = join(storageRoot, 'logs');
 const publicUrl = process.env.PUBLIC_URL || `http://localhost:${port}`;
-const setupKey = process.env.ADMIN_SETUP_KEY?.trim() || '';
 const mailTransport = process.env.SMTP_HOST ? nodemailer.createTransport({ host: process.env.SMTP_HOST, port: Number(process.env.SMTP_PORT || 587), secure: process.env.SMTP_SECURE === 'true', auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS } }) : null;
 
 const allowedOrigins = new Set(['http://localhost:3000', 'http://localhost:3001', 'http://localhost:4173', 'http://localhost:5500', 'http://localhost:5501']);
@@ -156,15 +155,13 @@ const requestHandler = async (request, response) => {
       return response.end();
     }
     if (url.pathname === '/api/health') return sendJson(response, 200, { ok: true, database: 'sqlite' });
-    if (url.pathname === '/api/auth/status' && request.method === 'GET') { const user = currentUser(request); if (user) delete user.csrf_token; return sendJson(response, 200, { setupRequired: userCount() === 0, setupKeyRequired: Boolean(setupKey) || production, user }); }
+    if (url.pathname === '/api/auth/status' && request.method === 'GET') { const user = currentUser(request); if (user) delete user.csrf_token; return sendJson(response, 200, { setupRequired: userCount() === 0, user }); }
     if (url.pathname === '/api/auth/setup' && request.method === 'POST') {
       if (setupInProgress) return sendJson(response, 409, { error: 'Admin setup is already being completed' });
       setupInProgress = true;
       try {
         if (userCount() > 0) return sendJson(response, 409, { error: 'Admin setup is already complete' });
         const body = await readBody(request);
-        if (production && !setupKey) return sendJson(response, 503, { error: 'Admin setup is locked until ADMIN_SETUP_KEY is configured' });
-        if (setupKey && body.setup_key !== setupKey) return sendJson(response, 403, { error: 'A valid one-time setup key is required' });
         if (!body.email || !body.password || body.password.length < 10) return sendJson(response, 400, { error: 'Use an email and a password of at least 10 characters' });
         createUser(body.email, body.password);
         return sendJson(response, 201, { ok: true });

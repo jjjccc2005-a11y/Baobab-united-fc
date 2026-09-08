@@ -38,11 +38,6 @@ if (authForm) {
         document.querySelector('[data-setup-locked]')?.classList.remove('hidden');
         return;
       }
-      if (data.setupKeyRequired && !authForm.querySelector('[name="setup_key"]')) {
-        const keyLabel = document.createElement('label');
-        keyLabel.innerHTML = 'One-time setup key<input name="setup_key" type="password" autocomplete="off" required placeholder="Provided by the site owner">';
-        authForm.insertBefore(keyLabel, authForm.querySelector('button[type="submit"]'));
-      }
     }).catch(() => showMessage('Start the backend before setting up admin.', true));
   }
   authForm.addEventListener('submit', async (event) => {
