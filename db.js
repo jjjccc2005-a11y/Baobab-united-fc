@@ -70,6 +70,15 @@ database.exec(`
     expires_at TEXT NOT NULL,
     used_at TEXT
   );
+  CREATE TABLE IF NOT EXISTS site_messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    source TEXT NOT NULL DEFAULT 'contact',
+    name TEXT,
+    email TEXT NOT NULL,
+    subject TEXT,
+    message TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+  );
 `);
 
 try { database.exec('ALTER TABLE sessions ADD COLUMN csrf_token TEXT NOT NULL DEFAULT \'legacy\''); } catch { /* Existing databases already have the column. */ }
@@ -198,6 +207,27 @@ export function reindexStandings() {
 
 export function getDatabase() {
   return database;
+}
+
+export function saveSiteMessage(entry) {
+  const insert = database.prepare(`INSERT INTO site_messages (source, name, email, subject, message) VALUES (?, ?, ?, ?, ?)`);
+  const result = insert.run(
+    entry.source || 'contact',
+    entry.name || '',
+    entry.email || '',
+    entry.subject || 'General enquiry',
+    entry.message || ''
+  );
+  return Number(result.lastInsertRowid);
+}
+
+export function getSiteMessages() {
+  return database.prepare(`SELECT * FROM site_messages ORDER BY created_at DESC`).all();
+}
+
+export function deleteSiteMessage(id) {
+  const result = database.prepare('DELETE FROM site_messages WHERE id = ?').run(id);
+  return result.changes > 0;
 }
 
 export async function backupDatabase(destination) {

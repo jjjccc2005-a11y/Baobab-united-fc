@@ -47,6 +47,7 @@ resetForm?.addEventListener('submit', async (event) => {
 const fixtureForm = document.querySelector('[data-fixture-form]');
 const fixtureList = document.querySelector('[data-fixture-list]');
 const mediaList = document.querySelector('[data-media-list]');
+const messageList = document.querySelector('[data-message-list]');
 
 request('/api/auth/me').then((data) => { csrfToken = data.csrfToken; }).catch(() => {});
 
@@ -90,6 +91,35 @@ async function loadMedia() {
 }
 
 loadMedia();
+
+async function loadMessages() {
+  if (!messageList) return;
+  try {
+    const messages = await request('/api/messages');
+    messageList.innerHTML = messages.length ? messages.map((item) => `
+      <article class="admin-message-card">
+        <div class="admin-message-header">
+          <span class="message-badge ${item.source === 'shop' ? 'shop' : item.source === 'contact' ? 'contact' : 'general'}">${item.source === 'shop' ? 'Shop signup' : item.source === 'contact' ? 'Contact enquiry' : 'Site form'}</span>
+          <button class="delete-button" data-delete-message="${item.id}">Delete</button>
+        </div>
+        <div class="admin-message-meta">
+          <strong>${item.name || 'Anonymous'}</strong>
+          <span>${item.email}</span>
+        </div>
+        <div class="admin-message-subject">${item.subject || 'General enquiry'}</div>
+        <p>${item.message}</p>
+        <small>${new Date(item.created_at).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })}</small>
+      </article>
+    `).join('') : '<p class="form-message">No site messages yet.</p>';
+    messageList.querySelectorAll('[data-delete-message]').forEach((button) => button.addEventListener('click', async () => {
+      if (!window.confirm('Delete this message?')) return;
+      try { await request(`/api/messages/${button.dataset.deleteMessage}`, { method: 'DELETE' }); await loadMessages(); showMessage('Message deleted.'); }
+      catch (error) { showMessage(error.message, true); }
+    }));
+  } catch (error) { messageList.innerHTML = '<p class="form-message error">Unable to load messages.</p>'; }
+}
+
+loadMessages();
 
 document.querySelector('[data-logout]')?.addEventListener('click', async () => { await request('/api/auth/logout', { method: 'POST' }); window.location.href = '/admin/login.html'; });
 

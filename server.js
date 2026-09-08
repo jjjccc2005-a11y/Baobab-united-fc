@@ -6,7 +6,7 @@ import { readFileSync } from 'node:fs';
 import { randomBytes } from 'node:crypto';
 import nodemailer from 'nodemailer';
 import { fileURLToPath } from 'node:url';
-import { backupDatabase, deleteFixture, getDatabase, getTeamData, recordFixture } from './db.js';
+import { backupDatabase, deleteFixture, deleteSiteMessage, getDatabase, getSiteMessages, getTeamData, recordFixture, saveSiteMessage } from './db.js';
 import { consumePasswordReset, createPasswordReset, createSession, createUser, deleteSession, findUser, getSessionUser, updatePassword, userCount, verifyCsrf, verifyPassword } from './auth.js';
 
 const root = fileURLToPath(new URL('.', import.meta.url));
@@ -219,6 +219,26 @@ const requestHandler = async (request, response) => {
       await mkdir(backupDirectory, { recursive: true });
       const backupPath = join(backupDirectory, `baobab-${new Date().toISOString().replace(/[:.]/g, '-')}.sqlite`);
       await backupDatabase(backupPath); return sendJson(response, 201, { ok: true, file: backupPath });
+    }
+    if (url.pathname === '/api/messages' && request.method === 'GET') {
+      const user = requireAdmin(request, response); if (!user) return;
+      return sendJson(response, 200, getSiteMessages());
+    }
+    if (url.pathname === '/api/messages' && request.method === 'POST') {
+      const body = await readBody(request);
+      const source = String(body.source || 'contact').trim();
+      const email = String(body.email || '').trim();
+      const message = String(body.message || '').trim();
+      if (!email || !message) return sendJson(response, 400, { error: 'Email and message are required' });
+      const record = { source, name: String(body.name || '').trim(), email, subject: String(body.subject || '').trim() || (source === 'shop' ? 'Early access sign-up' : 'General enquiry'), message };
+      const id = saveSiteMessage(record);
+      return sendJson(response, 201, { ok: true, id });
+    }
+    const messageMatch = url.pathname.match(/^\/api\/messages\/(\d+)$/);
+    if (messageMatch && request.method === 'DELETE') {
+      if (!requireCsrf(request, response)) return;
+      const deleted = deleteSiteMessage(Number(messageMatch[1]));
+      return sendJson(response, deleted ? 200 : 404, deleted ? { ok: true } : { error: 'Message not found' });
     }
     if (url.pathname === '/api/media' && request.method === 'GET') return sendJson(response, 200, database.prepare('SELECT * FROM media ORDER BY id DESC').all());
     if (url.pathname === '/api/media' && request.method === 'POST') {

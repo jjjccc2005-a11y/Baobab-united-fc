@@ -45,14 +45,48 @@ document.querySelectorAll('[data-toast]').forEach((button) => {
 	});
 });
 
+const apiOrigin = (() => {
+	const devPorts = new Set(['3000', '4173', '5500']);
+	return devPorts.has(window.location.port) ? 'http://localhost:3001' : '';
+})();
+
 document.querySelectorAll('[data-toast-form]').forEach((form) => {
-	form.addEventListener('submit', (event) => {
+	form.addEventListener('submit', async (event) => {
 		event.preventDefault();
-		if (!toast) return;
-		toast.textContent = 'Thanks, your message has been received.';
-		toast.classList.add('show');
-		form.reset();
-		window.setTimeout(() => toast.classList.remove('show'), 3000);
+		const formData = Object.fromEntries(new FormData(form).entries());
+		const payload = {
+			source: form.dataset.source || 'contact',
+			name: formData.name || formData['full-name'] || formData['contact-name'] || 'Website visitor',
+			subject: formData.subject || (form.dataset.source === 'shop' ? 'Early access sign-up' : 'General enquiry'),
+			email: formData.email || formData['shop-email'] || '',
+			message: formData.message || formData.details || 'No extras added.'
+		};
+		if (!payload.email || !payload.message) {
+			if (!toast) return;
+			toast.textContent = 'Please complete the required fields.';
+			toast.classList.add('show');
+			window.setTimeout(() => toast.classList.remove('show'), 3000);
+			return;
+		}
+		try {
+			const response = await fetch(`${apiOrigin}/api/messages`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(payload)
+			});
+			const data = await response.json().catch(() => ({}));
+			if (!response.ok) throw new Error(data.error || 'Message not sent');
+			if (!toast) return;
+			toast.textContent = form.dataset.success || 'Thanks, your message has been received.';
+			toast.classList.add('show');
+			form.reset();
+			window.setTimeout(() => toast.classList.remove('show'), 3000);
+		} catch (error) {
+			if (!toast) return;
+			toast.textContent = error.message || 'Unable to send message right now.';
+			toast.classList.add('show');
+			window.setTimeout(() => toast.classList.remove('show'), 3000);
+		}
 	});
 });
 
