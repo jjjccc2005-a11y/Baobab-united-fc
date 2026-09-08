@@ -132,5 +132,11 @@ button { color: inherit; font: inherit; cursor: pointer; }
 .admin-login-form-wrap .text-button { border: 0; padding: 0; background: transparent; color: var(--green); font-size: 12px; font-weight: 700; text-align: right; }
 .admin-login-form-wrap .admin-reset-form { gap: 14px; margin-top: 20px; padding: 20px; border: 1px solid rgba(20,33,27,.1); border-radius: 16px; background: rgba(255,255,255,.38); }
 .admin-login-form-wrap .admin-reset-form .button { justify-self: start; margin-top: 0; }
+.admin-setup-page .admin-login-form-wrap .admin-intro { max-width: 460px; }
+.setup-locked { display: grid; gap: 14px; padding: 22px; border: 1px solid rgba(36,84,65,.2); border-radius: 16px; background: rgba(36,84,65,.07); color: var(--green); }
+.setup-locked strong { font: 700 27px/.9 "Barlow Condensed"; text-transform: uppercase; }
+.setup-locked p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
+.setup-locked .button { justify-self: start; }
+.admin-setup-page .admin-back-link { display: inline-block; margin-top: 26px; color: var(--green); font-size: 12px; font-weight: 700; }
 @keyframes login-pulse { 50% { opacity: .25; } }
 @media (max-width: 760px) { .admin-login-card { display: block; } .admin-login-aside { min-height: 230px; padding: 28px; } .admin-login-note p:last-child { font-size: 30px; max-width: 180px; } .admin-login-form-wrap { padding: 42px 28px 32px; } .admin-login-form-wrap .admin-links { align-items: flex-start; flex-direction: column; gap: 14px; } .admin-login-form-wrap .text-button { text-align: left; } }

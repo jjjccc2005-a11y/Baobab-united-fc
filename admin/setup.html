@@ -1,3 +1,35 @@
 <!doctype html>
-<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Baobab United FC | Admin setup</title><link rel="stylesheet" href="../style.css"></head>
-<body class="admin-page"><main class="admin-card"><a class="brand" href="../index.html"><span class="crest"></span><span class="brand-copy"><strong>BAOBAB</strong><small>UNITED FC</small></span></a><p class="eyebrow">Admin access</p><h1>Create your<br><em>club login.</em></h1><p class="admin-intro">This creates the first administrator account for your private club dashboard.</p><form data-auth-form="setup"><label>Email address<input name="email" type="email" autocomplete="email" required></label><label>Password<input name="password" type="password" minlength="10" autocomplete="new-password" required><small>At least 10 characters.</small></label><button class="button button-primary" type="submit">Create admin account <span>&#8594;</span></button><p class="form-message" role="status"></p></form><a class="text-link admin-back-link" href="login.html">Back to login <span>&#8592;</span></a></main><script src="admin.js"></script></body></html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Baobab United FC | Admin setup</title>
+	<link rel="stylesheet" href="../style.css">
+</head>
+<body class="admin-page admin-login-page admin-setup-page">
+	<main class="admin-card admin-login-card">
+		<div class="admin-login-aside">
+			<a class="brand" href="../index.html"><span class="crest"></span><span class="brand-copy"><strong>BAOBAB</strong><small>UNITED FC</small></span></a>
+			<div class="admin-login-note"><p class="eyebrow">First-time setup</p><p>One club account. Carefully protected.</p></div>
+		</div>
+		<div class="admin-login-form-wrap">
+			<p class="eyebrow">Private area</p>
+			<h1>Create your<br><em>club login.</em></h1>
+			<p class="admin-intro">This creates the first administrator account for the private club dashboard. Setup closes permanently after the first account is created.</p>
+			<div class="setup-locked hidden" data-setup-locked>
+				<strong>Setup is already complete.</strong>
+				<p>The administrator account already exists. Use the login page to continue.</p>
+				<a class="button button-primary" href="login.html">Go to login <span>&#8594;</span></a>
+			</div>
+			<form data-auth-form="setup">
+				<label>Email address<input name="email" type="email" autocomplete="email" required placeholder="you@example.com"></label>
+				<label>Password<input name="password" type="password" minlength="10" autocomplete="new-password" required placeholder="At least 10 characters"><small>Use at least 10 characters.</small></label>
+				<button class="button button-primary" type="submit">Create admin account <span>&#8594;</span></button>
+				<p class="form-message" role="status" aria-live="polite"></p>
+			</form>
+			<a class="text-link admin-back-link" href="login.html">Back to login <span>&#8592;</span></a>
+		</div>
+	</main>
+	<script src="admin.js"></script>
+</body>
+</html>

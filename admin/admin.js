@@ -33,7 +33,11 @@ if (authForm) {
   const mode = authForm.dataset.authForm;
   if (mode === 'setup') {
     request('/api/auth/status').then((data) => {
-      if (!data.setupRequired) { window.location.href = '/admin/login.html'; return; }
+      if (!data.setupRequired) {
+        authForm.classList.add('hidden');
+        document.querySelector('[data-setup-locked]')?.classList.remove('hidden');
+        return;
+      }
       if (data.setupKeyRequired && !authForm.querySelector('[name="setup_key"]')) {
         const keyLabel = document.createElement('label');
         keyLabel.innerHTML = 'One-time setup key<input name="setup_key" type="password" autocomplete="off" required placeholder="Provided by the site owner">';
