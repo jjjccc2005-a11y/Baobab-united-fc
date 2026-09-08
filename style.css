@@ -101,3 +101,36 @@ button { color: inherit; font: inherit; cursor: pointer; }
 .form-message.error { color: #a33f36; }
 @media (max-width: 980px) { .admin-shell { grid-template-columns: 1fr; } .admin-sidebar { position: static; } .overview-grid, .settings-grid { grid-template-columns: 1fr; } }
 @media (max-width: 760px) { .admin-page { padding: 16px; } .admin-top { padding: 20px; display: block; } .admin-top-stats { grid-template-columns: 1fr 1fr; margin-top: 18px; } .admin-panel { padding: 18px 16px 22px; } .admin-form-row { grid-template-columns: 1fr; } .admin-fixture-row, .admin-media-row { display: grid; justify-content: stretch; } }
+.admin-login-card { max-width: 900px; padding: 0; display: grid; grid-template-columns: .82fr 1.18fr; overflow: hidden; }
+.admin-login-aside { padding: 42px; background: var(--ink); color: #fff; display: flex; flex-direction: column; justify-content: space-between; min-height: 540px; }
+.admin-login-aside .brand-copy small { color: rgba(255,255,255,.7); }
+.admin-login-note { max-width: 220px; }
+.admin-login-note .eyebrow { color: var(--lime); }
+.admin-login-note p:last-child { font: 700 38px/.9 "Barlow Condensed"; text-transform: uppercase; margin: 15px 0 0; }
+.admin-login-form-wrap { padding: 62px 58px 50px; }
+.admin-login-form-wrap h1 { font: 700 clamp(66px, 9vw, 105px)/.8 "Barlow Condensed"; text-transform: uppercase; margin: 0; }
+.admin-login-form-wrap h1 em { color: var(--green); font-style: normal; }
+.admin-login-form-wrap .admin-intro { margin: 24px 0 32px; }
+.admin-login-form-wrap form { display: grid; gap: 20px; }
+.admin-login-form-wrap label { display: grid; gap: 9px; color: var(--ink); font-size: 11px; font-weight: 700; letter-spacing: .04em; }
+.admin-login-form-wrap label > input { width: 100%; min-height: 50px; border: 1px solid rgba(20,33,27,.18); border-radius: 12px; background: rgba(255,255,255,.58); padding: 14px 15px; outline: 0; color: var(--ink); font: inherit; transition: border-color .2s, box-shadow .2s, background .2s; }
+.admin-login-form-wrap label > input::placeholder { color: rgba(102,116,108,.72); }
+.admin-login-form-wrap label > input:focus { border-color: var(--green); background: #fff; box-shadow: 0 0 0 4px rgba(36,84,65,.1); }
+.admin-login-form-wrap .password-field { width: 100%; min-height: 50px; display: flex; align-items: center; border: 1px solid rgba(20,33,27,.18); border-radius: 12px; background: rgba(255,255,255,.58); transition: border-color .2s, box-shadow .2s, background .2s; }
+.admin-login-form-wrap .password-field:focus-within { border-color: var(--green); background: #fff; box-shadow: 0 0 0 4px rgba(36,84,65,.1); }
+.admin-login-form-wrap .password-field input { flex: 1; min-width: 0; min-height: 48px; border: 0; background: transparent; padding: 14px 15px; outline: 0; font: inherit; }
+.admin-login-form-wrap .password-toggle { flex: 0 0 auto; margin-right: 12px; padding: 6px 0 6px 8px; border: 0; background: transparent; color: var(--green); font-size: 10px; font-weight: 700; }
+.admin-login-form-wrap .remember-option { display: flex; grid-template-columns: auto 1fr; align-items: center; gap: 9px; color: var(--muted); font-size: 11px; font-weight: 500; letter-spacing: 0; }
+.admin-login-form-wrap .remember-option input { width: 15px; height: 15px; margin: 0; accent-color: var(--green); }
+.admin-login-form-wrap .button { margin-top: 5px; }
+.admin-login-form-wrap .button:disabled { cursor: wait; opacity: .65; }
+.admin-login-form-wrap .button.is-loading span { display: inline-block; animation: login-pulse 1s infinite; }
+.admin-reset-form { margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--line); }
+.admin-login-form-wrap .admin-links { display: flex; justify-content: space-between; align-items: center; gap: 18px; margin-top: 28px; padding-top: 22px; border-top: 1px solid rgba(20,33,27,.1); font-size: 12px; }
+.admin-login-form-wrap .admin-links a { color: var(--green); font-weight: 700; }
+.admin-login-form-wrap .admin-links a:hover, .admin-login-form-wrap .text-button:hover { color: var(--ink); }
+.admin-login-form-wrap .text-button { border: 0; padding: 0; background: transparent; color: var(--green); font-size: 12px; font-weight: 700; text-align: right; }
+.admin-login-form-wrap .admin-reset-form { gap: 14px; margin-top: 20px; padding: 20px; border: 1px solid rgba(20,33,27,.1); border-radius: 16px; background: rgba(255,255,255,.38); }
+.admin-login-form-wrap .admin-reset-form .button { justify-self: start; margin-top: 0; }
+@keyframes login-pulse { 50% { opacity: .25; } }
+@media (max-width: 760px) { .admin-login-card { display: block; } .admin-login-aside { min-height: 230px; padding: 28px; } .admin-login-note p:last-child { font-size: 30px; max-width: 180px; } .admin-login-form-wrap { padding: 42px 28px 32px; } .admin-login-form-wrap .admin-links { align-items: flex-start; flex-direction: column; gap: 14px; } .admin-login-form-wrap .text-button { text-align: left; } }

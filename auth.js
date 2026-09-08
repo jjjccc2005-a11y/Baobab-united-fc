@@ -2,7 +2,8 @@ import { createHash, randomBytes, scryptSync, timingSafeEqual } from 'node:crypt
 import { getDatabase } from './db.js';
 
 const database = getDatabase();
-const SESSION_DAYS = 7;
+const SESSION_HOURS = 12;
+const REMEMBER_DAYS = 30;
 
 export function hashPassword(password) {
   const salt = randomBytes(16).toString('hex');
@@ -29,11 +30,16 @@ export function userCount() {
 }
 
 export function findUser(email) {
-  return database.prepare('SELECT id, email, password_hash, role FROM users WHERE email = ?').get(email.trim().toLowerCase());
+  return database.prepare('SELECT id, email, password_hash, role, created_at, last_login_at FROM users WHERE email = ?').get(email.trim().toLowerCase());
 }
 
 export function updatePassword(userId, password) {
+  deleteUserSessions(userId);
   return database.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hashPassword(password), userId);
+}
+
+export function recordLogin(userId) {
+  return database.prepare("UPDATE users SET last_login_at = datetime('now') WHERE id = ?").run(userId);
 }
 
 export function createPasswordReset(userId) {
@@ -54,19 +60,20 @@ export function consumePasswordReset(token, password) {
   return true;
 }
 
-export function createSession(userId) {
+export function createSession(userId, rememberMe = false) {
   const token = randomBytes(32).toString('hex');
   const csrfToken = randomBytes(32).toString('hex');
   const tokenHash = createHash('sha256').update(token).digest('hex');
-  const expiresAt = new Date(Date.now() + SESSION_DAYS * 86400000).toISOString();
-  database.prepare('INSERT INTO sessions (token_hash, user_id, expires_at, csrf_token) VALUES (?, ?, ?, ?)').run(tokenHash, userId, expiresAt, csrfToken);
-  return { token, csrfToken, expiresAt };
+  const maxAge = rememberMe ? REMEMBER_DAYS * 86400 : SESSION_HOURS * 3600;
+  const expiresAt = new Date(Date.now() + maxAge * 1000).toISOString();
+  database.prepare('INSERT INTO sessions (token_hash, user_id, expires_at, csrf_token, remember_me) VALUES (?, ?, ?, ?, ?)').run(tokenHash, userId, expiresAt, csrfToken, rememberMe ? 1 : 0);
+  return { token, csrfToken, expiresAt, maxAge };
 }
 
 export function getSessionUser(token) {
   if (!token) return null;
   const tokenHash = createHash('sha256').update(token).digest('hex');
-  return database.prepare(`SELECT users.id, users.email, users.role, sessions.csrf_token FROM sessions JOIN users ON users.id = sessions.user_id WHERE sessions.token_hash = ? AND sessions.expires_at > datetime('now')`).get(tokenHash) || null;
+  return database.prepare(`SELECT users.id, users.email, users.role, users.created_at, users.last_login_at, sessions.csrf_token FROM sessions JOIN users ON users.id = sessions.user_id WHERE sessions.token_hash = ? AND sessions.expires_at > datetime('now')`).get(tokenHash) || null;
 }
 
 export function verifyCsrf(token, csrfToken) {
@@ -79,4 +86,8 @@ export function deleteSession(token) {
   if (!token) return;
   const tokenHash = createHash('sha256').update(token).digest('hex');
   database.prepare('DELETE FROM sessions WHERE token_hash = ?').run(tokenHash);
+}
+
+export function deleteUserSessions(userId) {
+  return database.prepare('DELETE FROM sessions WHERE user_id = ?').run(userId);
 }

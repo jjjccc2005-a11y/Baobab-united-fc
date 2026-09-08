@@ -54,7 +54,8 @@ database.exec(`
     email TEXT NOT NULL UNIQUE,
     password_hash TEXT NOT NULL,
     role TEXT NOT NULL DEFAULT 'admin',
-    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_login_at TEXT
   );
   CREATE TABLE IF NOT EXISTS sessions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -62,6 +63,7 @@ database.exec(`
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     expires_at TEXT NOT NULL,
     csrf_token TEXT NOT NULL,
+    remember_me INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
   );
   CREATE TABLE IF NOT EXISTS password_reset_tokens (
@@ -82,6 +84,8 @@ database.exec(`
 `);
 
 try { database.exec('ALTER TABLE sessions ADD COLUMN csrf_token TEXT NOT NULL DEFAULT \'legacy\''); } catch { /* Existing databases already have the column. */ }
+try { database.exec('ALTER TABLE users ADD COLUMN last_login_at TEXT'); } catch { /* Existing databases already have the column. */ }
+try { database.exec('ALTER TABLE sessions ADD COLUMN remember_me INTEGER NOT NULL DEFAULT 0'); } catch { /* Existing databases already have the column. */ }
 try { database.exec('ALTER TABLE fixtures ADD COLUMN standings_applied INTEGER NOT NULL DEFAULT 0'); } catch { /* Existing databases already have the column. */ }
 database.prepare(`UPDATE fixtures SET standings_applied = 1 WHERE opponent = ? AND match_date = ? AND baobab_score = ? AND opponent_score = ?`).run('Mickleover R B L Reserves', '2026-09-05', 2, 1);
 

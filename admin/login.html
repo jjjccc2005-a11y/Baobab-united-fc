@@ -1,3 +1,32 @@
 <!doctype html>
-<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Baobab United FC | Admin login</title><link rel="stylesheet" href="../style.css"></head>
-<body class="admin-page"><main class="admin-card"><a class="brand" href="../index.html"><span class="crest"></span><span class="brand-copy"><strong>BAOBAB</strong><small>UNITED FC</small></span></a><p class="eyebrow">Private area</p><h1>Welcome<br><em>back.</em></h1><form data-auth-form="login"><label>Email address<input name="email" type="email" autocomplete="email" required></label><label>Password<input name="password" type="password" autocomplete="current-password" required></label><button class="button button-primary" type="submit">Log in <span>&#8594;</span></button><p class="form-message" role="status"></p></form><div class="admin-links"><a href="setup.html">Create admin account</a><button class="text-button" type="button" data-forgot-password>Forgot password?</button></div><form data-reset-form class="hidden"><label>Email address<input name="email" type="email" autocomplete="email" required></label><button class="button button-secondary" type="submit">Email reset link</button></form></main><script src="admin.js"></script></body></html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Baobab United FC | Admin login</title>
+	<link rel="stylesheet" href="../style.css">
+</head>
+<body class="admin-page admin-login-page">
+	<main class="admin-card admin-login-card">
+		<div class="admin-login-aside">
+			<a class="brand" href="../index.html"><span class="crest"></span><span class="brand-copy"><strong>BAOBAB</strong><small>UNITED FC</small></span></a>
+			<div class="admin-login-note"><p class="eyebrow">Private area</p><p>Everything you need for matchday, in one place.</p></div>
+		</div>
+		<div class="admin-login-form-wrap">
+			<p class="eyebrow">Admin access</p>
+			<h1>Welcome<br><em>back.</em></h1>
+			<p class="admin-intro">Sign in to manage fixtures, results, media, and club enquiries.</p>
+			<form data-auth-form="login">
+				<label>Email address<input name="email" type="email" autocomplete="email" required placeholder="you@example.com"></label>
+				<label>Password<input name="password" type="password" autocomplete="current-password" required placeholder="Enter your password"></label>
+				<label class="remember-option"><input name="remember_me" type="checkbox"> Keep me signed in for 30 days</label>
+				<button class="button button-primary" type="submit">Log in <span>&#8594;</span></button>
+				<p class="form-message" role="status" aria-live="polite"></p>
+			</form>
+			<div class="admin-links"><a href="setup.html">Create admin account</a><button class="text-button" type="button" data-forgot-password>Forgot password?</button></div>
+			<form data-reset-form class="hidden admin-reset-form"><label>Email address<input name="email" type="email" autocomplete="email" required placeholder="you@example.com"></label><button class="button button-secondary" type="submit">Email reset link</button></form>
+		</div>
+	</main>
+	<script src="admin.js"></script>
+</body>
+</html>

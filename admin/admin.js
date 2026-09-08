@@ -1,7 +1,7 @@
 const formMessage = document.querySelector('.form-message');
 let csrfToken = null;
-const devPorts = new Set(['3000', '4173', '5500']);
-const apiOrigin = devPorts.has(window.location.port) ? 'http://localhost:3001' : '';
+const isLocalPreview = ['localhost', '127.0.0.1'].includes(window.location.hostname) && window.location.port !== '3001';
+const apiOrigin = isLocalPreview ? 'http://localhost:3001' : '';
 const showMessage = (message, isError = false) => { if (!formMessage) return; formMessage.textContent = message; formMessage.classList.toggle('error', isError); };
 
 async function request(path, options = {}) {
@@ -32,13 +32,28 @@ const authForm = document.querySelector('[data-auth-form]');
 if (authForm) {
   const mode = authForm.dataset.authForm;
   if (mode === 'setup') {
-    request('/api/auth/status').then((data) => { if (!data.setupRequired) window.location.href = '/admin/login.html'; }).catch(() => showMessage('Start the backend before setting up admin.', true));
+    request('/api/auth/status').then((data) => {
+      if (!data.setupRequired) { window.location.href = '/admin/login.html'; return; }
+      if (data.setupKeyRequired && !authForm.querySelector('[name="setup_key"]')) {
+        const keyLabel = document.createElement('label');
+        keyLabel.innerHTML = 'One-time setup key<input name="setup_key" type="password" autocomplete="off" required placeholder="Provided by the site owner">';
+        authForm.insertBefore(keyLabel, authForm.querySelector('button[type="submit"]'));
+      }
+    }).catch(() => showMessage('Start the backend before setting up admin.', true));
   }
   authForm.addEventListener('submit', async (event) => {
     event.preventDefault();
+    const submitButton = authForm.querySelector('button[type="submit"]');
+    if (submitButton) { submitButton.disabled = true; submitButton.classList.add('is-loading'); }
     const body = Object.fromEntries(new FormData(authForm));
-    try { await request(`/api/auth/${mode}`, { method: 'POST', body: JSON.stringify(body) }); window.location.href = mode === 'setup' ? '/admin/login.html' : '/admin/'; }
-    catch (error) { showMessage(error.message, true); }
+    if (mode === 'login') body.remember_me = Boolean(authForm.elements.remember_me?.checked);
+    try {
+      await request(`/api/auth/${mode}`, { method: 'POST', body: JSON.stringify(body) });
+      window.location.href = mode === 'setup' ? '/admin/login.html' : '/admin/';
+    } catch (error) {
+      showMessage(error.message || 'Unable to sign in. Please try again.', true);
+      if (submitButton) { submitButton.disabled = false; submitButton.classList.remove('is-loading'); }
+    }
   });
 }
 
@@ -142,7 +157,7 @@ document.querySelector('[data-logout]')?.addEventListener('click', async () => {
 document.querySelector('[data-password-form]')?.addEventListener('submit', async (event) => {
   event.preventDefault();
   const password = new FormData(event.currentTarget).get('password');
-  try { await ensureAdmin(); await request('/api/auth/password', { method: 'POST', body: JSON.stringify({ password }) }); event.currentTarget.reset(); showMessage('Password updated.'); }
+  try { await ensureAdmin(); await request('/api/auth/password', { method: 'POST', body: JSON.stringify({ password }) }); window.location.href = '/admin/login.html?password=updated'; }
   catch (error) { showMessage(error.message, true); }
 });
 

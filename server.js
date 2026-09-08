@@ -7,7 +7,7 @@ import { randomBytes } from 'node:crypto';
 import nodemailer from 'nodemailer';
 import { fileURLToPath } from 'node:url';
 import { backupDatabase, deleteFixture, deleteSiteMessage, getDatabase, getSiteMessages, getTeamData, recordFixture, saveSiteMessage } from './db.js';
-import { consumePasswordReset, createPasswordReset, createSession, createUser, deleteSession, findUser, getSessionUser, updatePassword, userCount, verifyCsrf, verifyPassword } from './auth.js';
+import { consumePasswordReset, createPasswordReset, createSession, createUser, deleteSession, findUser, getSessionUser, recordLogin, updatePassword, userCount, verifyCsrf, verifyPassword } from './auth.js';
 
 const root = fileURLToPath(new URL('.', import.meta.url));
 const port = Number(process.env.PORT || 3001);
@@ -15,14 +15,16 @@ const mimeTypes = { '.html': 'text/html', '.css': 'text/css', '.js': 'text/javas
 const database = getDatabase();
 const production = process.env.NODE_ENV === 'production';
 const loginAttempts = new Map();
+let setupInProgress = false;
 const storageRoot = process.env.DATA_DIR || root;
 const uploadDirectory = join(storageRoot, 'uploads');
 const backupDirectory = join(storageRoot, 'backups');
 const logDirectory = join(storageRoot, 'logs');
 const publicUrl = process.env.PUBLIC_URL || `http://localhost:${port}`;
+const setupKey = process.env.ADMIN_SETUP_KEY?.trim() || '';
 const mailTransport = process.env.SMTP_HOST ? nodemailer.createTransport({ host: process.env.SMTP_HOST, port: Number(process.env.SMTP_PORT || 587), secure: process.env.SMTP_SECURE === 'true', auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS } }) : null;
 
-const allowedOrigins = new Set(['http://localhost:3000', 'http://localhost:3001', 'http://localhost:4173', 'http://localhost:5500']);
+const allowedOrigins = new Set(['http://localhost:3000', 'http://localhost:3001', 'http://localhost:4173', 'http://localhost:5500', 'http://localhost:5501']);
 
 function sendJson(response, status, data) {
   const origin = response.req?.headers.origin;
@@ -47,8 +49,8 @@ function currentUser(request) {
   return getSessionUser(parseCookies(request).baobab_session);
 }
 
-function cookieOptions() {
-  return `HttpOnly; SameSite=Lax; Path=/; Max-Age=${7 * 86400}${production ? '; Secure' : ''}`;
+function cookieOptions(maxAge = 12 * 3600) {
+  return `HttpOnly; SameSite=Lax; Path=/; Max-Age=${maxAge}${production ? '; Secure' : ''}`;
 }
 
 function requestKey(request, email = '') {
@@ -154,13 +156,21 @@ const requestHandler = async (request, response) => {
       return response.end();
     }
     if (url.pathname === '/api/health') return sendJson(response, 200, { ok: true, database: 'sqlite' });
-    if (url.pathname === '/api/auth/status' && request.method === 'GET') { const user = currentUser(request); if (user) delete user.csrf_token; return sendJson(response, 200, { setupRequired: userCount() === 0, user }); }
+    if (url.pathname === '/api/auth/status' && request.method === 'GET') { const user = currentUser(request); if (user) delete user.csrf_token; return sendJson(response, 200, { setupRequired: userCount() === 0, setupKeyRequired: Boolean(setupKey) || production, user }); }
     if (url.pathname === '/api/auth/setup' && request.method === 'POST') {
-      if (userCount() > 0) return sendJson(response, 409, { error: 'Admin setup is already complete' });
-      const body = await readBody(request);
-      if (!body.email || !body.password || body.password.length < 10) return sendJson(response, 400, { error: 'Use an email and a password of at least 10 characters' });
-      createUser(body.email, body.password);
-      return sendJson(response, 201, { ok: true });
+      if (setupInProgress) return sendJson(response, 409, { error: 'Admin setup is already being completed' });
+      setupInProgress = true;
+      try {
+        if (userCount() > 0) return sendJson(response, 409, { error: 'Admin setup is already complete' });
+        const body = await readBody(request);
+        if (production && !setupKey) return sendJson(response, 503, { error: 'Admin setup is locked until ADMIN_SETUP_KEY is configured' });
+        if (setupKey && body.setup_key !== setupKey) return sendJson(response, 403, { error: 'A valid one-time setup key is required' });
+        if (!body.email || !body.password || body.password.length < 10) return sendJson(response, 400, { error: 'Use an email and a password of at least 10 characters' });
+        createUser(body.email, body.password);
+        return sendJson(response, 201, { ok: true });
+      } finally {
+        setupInProgress = false;
+      }
     }
     if (url.pathname === '/api/auth/request-reset' && request.method === 'POST') {
       const body = await readBody(request);
@@ -183,13 +193,14 @@ const requestHandler = async (request, response) => {
       const user = findUser(body.email || '');
       if (!user || !verifyPassword(body.password || '', user.password_hash)) { recordLoginFailure(request, body.email || ''); return sendJson(response, 401, { error: 'Invalid email or password' }); }
       clearLoginFailures(request, body.email || '');
-      const session = createSession(user.id);
-      response.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Set-Cookie': `baobab_session=${session.token}; ${cookieOptions()}` });
+      const session = createSession(user.id, body.remember_me === true || body.remember_me === 'true');
+      recordLogin(user.id);
+      response.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Set-Cookie': `baobab_session=${session.token}; ${cookieOptions(session.maxAge)}` });
       return response.end(JSON.stringify({ ok: true }));
     }
     if (url.pathname === '/api/auth/logout' && request.method === 'POST') {
       deleteSession(parseCookies(request).baobab_session);
-      response.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Set-Cookie': `baobab_session=; ${cookieOptions().replace('Max-Age=604800', 'Max-Age=0')}` });
+      response.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Set-Cookie': `baobab_session=; ${cookieOptions(0)}` });
       return response.end(JSON.stringify({ ok: true }));
     }
     if (url.pathname === '/api/auth/me' && request.method === 'GET') { const user = currentUser(request); const csrfToken = user?.csrf_token || null; if (user) delete user.csrf_token; return sendJson(response, 200, { user, csrfToken }); }
