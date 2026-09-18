@@ -97,6 +97,46 @@ document.querySelectorAll('.filter-button').forEach((button) => {
 	});
 });
 
+const playerProfiles = {
+	jamie: { name: 'Jamie Carter', position: 'Goalkeeper', number: '01', image: 'https://images.unsplash.com/photo-1560272564-c83b66b1ad12?auto=format&fit=crop&w=900&q=85', history: 'A calm presence between the posts, Jamie came through the local youth setup before joining Baobab United. His quick distribution and steady voice give the team a confident first line of attack.' },
+	musa: { name: 'Musa Okafor', position: 'Defender', number: '02', image: 'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&w=900&q=85', history: 'Musa brings strength, timing, and a composed presence to the back line. He joined the club after making his mark in Sunday league football and quickly became a dependable organiser.' },
+	elliot: { name: 'Elliot Hayes', position: 'Defender', number: '03', image: 'https://images.unsplash.com/photo-1517466787929-bc90951d0974?auto=format&fit=crop&w=900&q=85', history: 'A versatile defender with an eye for a forward pass, Elliot has built his game around reading danger early and keeping the team moving up the pitch.' },
+	daniel: { name: 'Daniel Mensah', position: 'Midfielder', number: '04', image: 'https://images.unsplash.com/photo-1553778263-73a83bab9b0c?auto=format&fit=crop&w=900&q=85', history: 'Daniel sets the rhythm in midfield. His energy, close control, and willingness to do the hard running make him an important link between defence and attack.' },
+	owen: { name: 'Owen Williams', position: 'Midfielder', number: '05', image: 'https://images.unsplash.com/photo-1526232761682-d26e03ac148e?auto=format&fit=crop&w=900&q=85', history: 'Owen is a thoughtful passer who has grown through the club pathway. He sees space early and brings a patient, creative edge to the middle of the pitch.' },
+	kofi: { name: 'Kofi Addo', position: 'Midfielder', number: '06', image: 'https://images.unsplash.com/photo-1431324155629-1a6deb1dec8d?auto=format&fit=crop&w=900&q=85', history: 'Kofi combines sharp movement with a relentless work rate. His story at Baobab is one of steady progress, from training-ground prospect to first-team contributor.' },
+	lucas: { name: 'Lucas Reed', position: 'Forward', number: '07', image: 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=900&q=85', history: 'Lucas plays on instinct and attacks every space behind a defence. After making a name for himself in local competition, he arrived ready to bring pace and purpose to the front line.' },
+	andre: { name: 'Andre Silva', position: 'Forward', number: '08', image: 'https://images.unsplash.com/photo-1556056504-5c7696c4c28d?auto=format&fit=crop&w=900&q=85', history: 'Andre is a technically gifted forward with a knack for bringing others into the game. His positive attitude and creative finishing make him a constant threat.' }
+};
+
+const playerCards = document.querySelectorAll('.player-card');
+	const playerDialog = document.querySelector('.player-dialog');
+if (playerCards.length && playerDialog) {
+	const profileImage = playerDialog.querySelector('.dialog-image');
+	const profilePosition = playerDialog.querySelector('.profile-position');
+	const profileName = playerDialog.querySelector('#dialog-player-name');
+	const profileHistory = playerDialog.querySelector('.profile-history');
+	const profileNumber = playerDialog.querySelector('.profile-meta strong');
+	const closeDialog = () => playerDialog.close();
+	playerCards.forEach((card) => {
+		card.addEventListener('click', () => {
+			const player = playerProfiles[card.dataset.player];
+			if (!player) return;
+			playerCards.forEach((item) => item.classList.toggle('active', item === card));
+			profileImage.src = player.image;
+			profileImage.alt = player.name;
+			profilePosition.textContent = player.position;
+			profileName.textContent = player.name;
+			profileHistory.textContent = player.history;
+			profileNumber.textContent = player.number;
+			playerDialog.showModal();
+		});
+	});
+	playerDialog.querySelector('.dialog-close').addEventListener('click', closeDialog);
+	playerDialog.addEventListener('click', (event) => {
+		if (event.target === playerDialog) closeDialog();
+	});
+}
+
 const sections = document.querySelectorAll('main section[id]');
 const sectionObserver = new IntersectionObserver((entries) => {
 	entries.forEach((entry) => {
@@ -107,6 +147,44 @@ const sectionObserver = new IntersectionObserver((entries) => {
 }, { rootMargin: '-35% 0px -55% 0px' });
 
 sections.forEach((section) => sectionObserver.observe(section));
+
+function loadFaLeagueTable() {
+	const leagueTable = document.querySelector('.league-table');
+	if (!leagueTable || !window.location.protocol.startsWith('http')) return;
+
+	const embed = document.createElement('div');
+	embed.className = 'fa-league-embed';
+	embed.innerHTML = '<div id="lrep1391014">Data loading.... <a href="https://fulltime.thefa.com/index.html?divisionseason=872585558" target="_blank" rel="noopener">View Macron Nottingham Division 1 South</a><br><br><a href="https://www.thefa.com/FULL-TIME" target="_blank" rel="noopener">FULL-TIME Home</a></div>';
+	leagueTable.parentNode.insertBefore(embed, leagueTable);
+	window.lrcode = '1391014';
+	const script = document.createElement('script');
+	script.src = 'https://fulltime.thefa.com/client/api/cs1.js';
+	script.async = false;
+	script.onload = () => {
+		leagueTable.classList.add('fa-fallback-hidden');
+		loadFaFixtures();
+	};
+	script.onerror = loadFaFixtures;
+	embed.appendChild(script);
+}
+
+function loadFaFixtures() {
+	const fixtureLayout = document.querySelector('.fixture-layout');
+	if (!fixtureLayout || fixtureLayout.previousElementSibling?.classList.contains('fa-fixtures-embed')) return;
+
+	const embed = document.createElement('div');
+	embed.className = 'fa-fixtures-embed';
+	embed.innerHTML = '<div id="lrep735098901">Data loading.... <a href="https://fulltime.thefa.com/index.html?divisionseason=872585558" target="_blank" rel="noopener">View Macron Stores Nottingham Division 1 South</a><br><br><a href="https://www.thefa.com/FULL-TIME" target="_blank" rel="noopener">FULL-TIME Home</a></div>';
+	fixtureLayout.parentNode.insertBefore(embed, fixtureLayout);
+	window.lrcode = '735098901';
+	const script = document.createElement('script');
+	script.src = 'https://fulltime.thefa.com/client/api/cs1.js';
+	script.async = false;
+	script.onload = () => fixtureLayout.classList.add('fa-fallback-hidden');
+	embed.appendChild(script);
+}
+
+loadFaLeagueTable();
 
 async function loadTeamData() {
 	const fixtureLayout = document.querySelector('.fixture-layout');
